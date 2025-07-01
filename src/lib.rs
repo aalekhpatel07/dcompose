@@ -1,17 +1,15 @@
-use std::str::FromStr;
-use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use bytes::Bytes;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use std::sync::LazyLock;
-
 
 pub static GITHUB_SPEC_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(?<project>[^\/]+)\/(?<repository>[^[\+:]]+)(?<branch>\+[^:]+)?:(?<path>[^@]+)@(?<services>.+)$").expect("should be able to compile basic github repo regex")
 });
 
 use thiserror::Error;
-
 
 #[derive(Debug, Error)]
 pub enum YammerError {
@@ -24,9 +22,8 @@ pub enum YammerError {
     Reqwest(#[from] reqwest::Error),
 
     #[error("Failed to make sense of file source: {0}")]
-    UnknownSpec(String)
+    UnknownSpec(String),
 }
-
 
 #[derive(Debug, Error)]
 pub enum DownloadError {
@@ -37,7 +34,7 @@ pub enum DownloadError {
 #[derive(Debug, Clone)]
 pub struct GithubFileSpec<S> {
     pub project: S,
-    pub repository: S, 
+    pub repository: S,
     pub branch: S,
     pub filepath: S,
 }
@@ -48,14 +45,14 @@ impl<S> GithubFileSpec<S> {
             project,
             repository,
             branch,
-            filepath
+            filepath,
         }
     }
 }
 
-
-impl<S> GithubFileSpec<S> 
-where S: AsRef<str>
+impl<S> GithubFileSpec<S>
+where
+    S: AsRef<str>,
 {
     pub fn get_url(&self) -> String {
         format!(
@@ -70,12 +67,14 @@ where S: AsRef<str>
 
 #[derive(Debug, Clone)]
 pub struct GithubFileDownloader {
-    pub client: reqwest::Client
+    pub client: reqwest::Client,
 }
 
 impl GithubFileDownloader {
     pub fn new() -> Self {
-        Self { client: reqwest::Client::new() }
+        Self {
+            client: reqwest::Client::new(),
+        }
     }
 }
 
@@ -86,8 +85,7 @@ impl Default for GithubFileDownloader {
 }
 
 #[async_trait]
-impl DownloadFile for GithubFileDownloader 
-{
+impl DownloadFile for GithubFileDownloader {
     type FileSpec = GithubFileSpec<String>;
     async fn download_file(&self, spec: &Self::FileSpec) -> Result<Bytes, YammerError> {
         let url = spec.get_url();
@@ -98,22 +96,23 @@ impl DownloadFile for GithubFileDownloader
     }
 }
 
-
 #[async_trait]
 pub trait DownloadFile {
     type FileSpec: Send + Sync;
     async fn download_file(&self, spec: &Self::FileSpec) -> Result<Bytes, YammerError>;
-    async fn download_compose_file(&self, spec: &Self::FileSpec) -> Result<DockerComposeFile, YammerError> {
+    async fn download_compose_file(
+        &self,
+        spec: &Self::FileSpec,
+    ) -> Result<DockerComposeFile, YammerError> {
         let contents = self.download_file(spec).await?;
         Ok(DockerComposeFile::try_from(&contents)?)
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DockerComposeFile {
     pub version: Option<String>,
-    pub services: Option<serde_yaml::Mapping>
+    pub services: Option<serde_yaml::Mapping>,
 }
 
 impl TryFrom<&Bytes> for DockerComposeFile {
@@ -136,37 +135,53 @@ impl DockerComposeFile {
     }
 }
 
-
 impl FromStr for ComposeServiceGithubSpec<String> {
     type Err = YammerError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let Some(captures) = GITHUB_SPEC_RE.captures(s) else {
-            return Err(YammerError::UnknownSpec("Doesn't match expected regex.".to_string()));
+            return Err(YammerError::UnknownSpec(
+                "Doesn't match expected regex.".to_string(),
+            ));
         };
         let Some(project) = captures.name("project").map(|m| m.as_str()) else {
-            return Err(YammerError::UnknownSpec("project/user is not specified".to_string()));
+            return Err(YammerError::UnknownSpec(
+                "project/user is not specified".to_string(),
+            ));
         };
         let Some(repository) = captures.name("repository").map(|m| m.as_str()) else {
-            return Err(YammerError::UnknownSpec("repository is not specified".to_string()));
+            return Err(YammerError::UnknownSpec(
+                "repository is not specified".to_string(),
+            ));
         };
         let Some(path) = captures.name("path").map(|m| m.as_str()) else {
-            return Err(YammerError::UnknownSpec("path is not specified".to_string()));
+            return Err(YammerError::UnknownSpec(
+                "path is not specified".to_string(),
+            ));
         };
         let Some(services_csv) = captures.name("services").map(|m| m.as_str()) else {
-            return Err(YammerError::UnknownSpec("no services are specified".to_string()));
+            return Err(YammerError::UnknownSpec(
+                "no services are specified".to_string(),
+            ));
         };
-        let branch = captures.name("branch").map(|m| {
-            let s = m.as_str();
-            s.split("+").last().unwrap()
-        }).unwrap_or_else(|| "master");
+        let branch = captures
+            .name("branch")
+            .map(|m| {
+                let s = m.as_str();
+                s.split("+").last().unwrap()
+            })
+            .unwrap_or_else(|| "master");
 
-        let spec = GithubFileSpec::new(project.to_string(), repository.to_string(), branch.to_string(), path.to_string());
+        let spec = GithubFileSpec::new(
+            project.to_string(),
+            repository.to_string(),
+            branch.to_string(),
+            path.to_string(),
+        );
         let services = services_csv.split(",").map(|s| s.to_owned()).collect();
         Ok(ComposeServiceGithubSpec { spec, services })
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -174,7 +189,10 @@ mod tests {
 
     #[test]
     fn test_github_file_spec_from_str() {
-        let service_spec: ComposeServiceGithubSpec<String> = "Data4Democracy/docker-scaffolding+main:docker-compose.yml@postgres".parse().expect("should capture");
+        let service_spec: ComposeServiceGithubSpec<String> =
+            "Data4Democracy/docker-scaffolding+main:docker-compose.yml@postgres"
+                .parse()
+                .expect("should capture");
         let spec = service_spec.spec;
         assert_eq!(spec.branch, "main");
         assert_eq!(spec.filepath, "docker-compose.yml");
@@ -185,7 +203,10 @@ mod tests {
 
     #[test]
     fn test_github_file_spec_from_str_default_branch() {
-        let service_spec: ComposeServiceGithubSpec<String> = "Data4Democracy/docker-scaffolding:docker-compose.yml@foo,bar".parse().unwrap();
+        let service_spec: ComposeServiceGithubSpec<String> =
+            "Data4Democracy/docker-scaffolding:docker-compose.yml@foo,bar"
+                .parse()
+                .unwrap();
         let spec = service_spec.spec;
         assert_eq!(spec.branch, "master");
         assert_eq!(spec.filepath, "docker-compose.yml");
@@ -196,10 +217,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_download() {
-        let service_spec: ComposeServiceGithubSpec<String> = "Data4Democracy/docker-scaffolding:docker-compose.yml@postgres".parse().unwrap();
+        let service_spec: ComposeServiceGithubSpec<String> =
+            "Data4Democracy/docker-scaffolding:docker-compose.yml@postgres"
+                .parse()
+                .unwrap();
 
         let downloader = GithubFileDownloader::new();
-        let compose_file = downloader.download_compose_file(&service_spec.spec).await.unwrap();
+        let compose_file = downloader
+            .download_compose_file(&service_spec.spec)
+            .await
+            .unwrap();
         let config = compose_file.get_service(&service_spec.services[0]).unwrap();
 
         let expected = r#"
@@ -208,5 +235,4 @@ mod tests {
         let expected: serde_yaml::Mapping = serde_yaml::from_str(&expected).unwrap();
         assert_eq!(config, &expected);
     }
-
 }
