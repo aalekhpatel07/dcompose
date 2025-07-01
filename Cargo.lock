@@ -272,6 +272,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
 
 [[package]]
+name = "dcompose"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "clap",
+ "crossbeam",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_yaml",
+ "thiserror",
+ "tokio",
+ "yaml",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1768,23 +1785,6 @@ checksum = "8f3e836575769aa7afe82989d8e66e4a3aa501b2cdb34cf91fc3bbe2b46de80c"
 dependencies = [
  "libc",
  "regex",
-]
-
-[[package]]
-name = "yammer"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "clap",
- "crossbeam",
- "regex",
- "reqwest",
- "serde",
- "serde_yaml",
- "thiserror",
- "tokio",
- "yaml",
 ]
 
 [[package]]
