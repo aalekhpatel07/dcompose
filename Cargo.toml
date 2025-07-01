@@ -1,6 +1,6 @@
 [package]
 name = "dcompose"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Aalekh Patel <aalekh.gwpeck.7998@icloud.com>"]
 license-file = "LICENSE.md"
