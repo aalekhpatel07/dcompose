@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::{collections::HashMap, fs::read_to_string, io::Write, path::PathBuf};
 use dcompose::*;
+use std::{collections::HashMap, fs::read_to_string, io::Write, path::PathBuf};
 
 #[derive(Debug, Parser)]
 #[clap(author, version)]
