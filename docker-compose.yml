@@ -1,0 +1,17 @@
+version: '3'
+services:
+  redis:
+    image: redis:7.2.4
+    container_name: omnivore-redis
+    ports:
+    - 6379:6379
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - --raw
+      - incr
+      - ping
+  mongo:
+    build: docker/mongo
+    image: mongo

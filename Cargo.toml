@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 authors = ["Aalekh Patel <aalekh.gwpeck.7998@icloud.com>"]
 license-file = "LICENSE.md"
+readme-file = "README.md"
 description = "Clone docker compose service configs across repositories on Github."
 homepage = "https://github.com/aalekhpatel07/dcompose"
 repository = "https://github.com/aalekhpatel07/dcompose"
